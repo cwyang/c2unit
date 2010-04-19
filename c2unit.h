@@ -177,6 +177,24 @@ struct c2_test
 	struct c2_list_head link;
 	struct c2_list_head hash_link;
 };
+
+struct c2_stat
+{
+        int nr_func;
+        int nr_tested_func;
+        int nr_test;
+        int nr_assert;
+        int pass_assert;
+        int pass_test;
+        int prog_score;
+        /* settings */
+        char *test_path;
+        int test_pri;
+        int test_dump_core;
+        int test_dump_info;
+        int test_verbose;
+};
+        
 #define __C2_TEST_ID          c2_unique_id(__c2_test)
 #define __C2_TEST_INIT(Name, Desc, Path, Pri)                           \
         { .name = (Name), .file = __FILE__, .desc = (Desc), .path = (Path), .pri = (Pri) }
@@ -191,10 +209,12 @@ struct c2_test
         void (f##_test) (void)
 
 #define c2_assert(x) do {                                               \
-                if (!(x)) {                                             \
-                        fprintf(stderr, "Assertion failure @ %s:%d\n\"%s\" does not hold\n", \
-                                __FILE__, __LINE__, #x);                \
-                }                                                       \
+        __c2_prog_stat.nr_assert++;                                     \
+        if (!(x)) {                                                     \
+                fprintf(stderr, "Assertion failure @ %s:%d\n\"%s\" does not hold\n", \
+                        __FILE__, __LINE__, #x);                        \
+        }                                                               \
+        __c2_prog_stat.pass_assert++;                                 \
         } while (0)
 #define c2_panic(x) do {                                                \
                 fprintf(stderr, "*** PANIC *** %s:%d <%s>\n",           \
@@ -203,7 +223,7 @@ struct c2_test
         } while (0)
 
 typedef void (*c2_testfn_t)(void);
-
+extern struct c2_stat __c2_prog_stat;
 #ifdef C2UNIT_TEST_PATH
 #undef C2UNIT_TEST_PATH
 #endif

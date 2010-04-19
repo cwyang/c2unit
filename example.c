@@ -1,4 +1,10 @@
+/* 
+   example.c            - Chul-Woong Yang (cwyang@gmail.com)
+
+   example code to demonstrate c2unit
+*/
 #include <stdio.h>
+#include <unistd.h>
 #include "c2unit.h"
 
 FUNC_BEGIN(foo, NORMAL)
@@ -25,9 +31,18 @@ FUNC_END(baz)
 main(int argc, char *argv[]) 
 {
         extern void foo_test(void);
-        printf("cw's unit test program!\n");
-        foo_test();
-	test_run(argc, argv);
+        int c;
+
+        // if -t then do unit tests
+        while ((c = getopt(argc, argv, "t")) != -1)
+                switch (c) {
+                case 't': test_run(argc, argv);
+                        exit(0);
+                }
+
+        // otherwise do normal tasks
+        printf("Hello, world!\n");
+        printf("Welcome to cwyang's first unit test program!\n");
 }
 
 #include "example_test.c"

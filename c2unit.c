@@ -5,6 +5,7 @@
 */
 
 #include <stdint.h>
+#include <unistd.h>
 #include "c2unit.h"
 
 #define DFL_HASH_SIZE 2011 // prime number
@@ -13,6 +14,7 @@ static struct c2_si_ent c2_si_end_marker __section(".c2") __aligned(c2_alignof(s
 static struct c2_list_head func_head, test_head;
 static struct c2_list_head *func_hash, *test_hash;
 static unsigned hash_size;
+struct c2_stat __c2_prog_stat;
 
 static unsigned int hashval(char *name, char *file, char *path) 
 {
@@ -39,6 +41,7 @@ static void c2_func_ins(struct c2_si_ent *ent)
 	c2_list_add_tail(&f->hash_link, 
                          &func_hash[hashval(f->name,f->file,f->path) % 
                                     hash_size]);
+        __c2_prog_stat.nr_func++;
 }
 
 /* if the base portion filename end with _test, cut it off */
@@ -66,6 +69,7 @@ static void c2_test_ins(struct c2_si_ent *ent)
 	c2_list_add_tail(&f->hash_link, 
                          &test_hash[hashval(f->name,f->file,f->path) % 
                                     hash_size]);
+        __c2_prog_stat.nr_test++;
 }
 
 static int find_test(char *name, char *file, char *path) 
@@ -110,6 +114,8 @@ static void c2_match_test_func()
 	c2_list_for_each(le, &func_head) {
 		f = c2_list_entry(le, struct c2_func, link);
                 f->has_test = find_test(f->name, f->file, f->path);
+                if (f->has_test)
+                        __c2_prog_stat.nr_tested_func++;
 	}
 	c2_list_for_each(le, &test_head) {
 		t = c2_list_entry(le, struct c2_test, link);
@@ -128,6 +134,37 @@ static void c2_env_build(struct c2_si_ent *begin, struct c2_si_ent *end)
 			c2_test_ins(ent);
 	}
         c2_match_test_func();
+}
+
+// cwyang's heuristics
+// Code safety is proportional to the square of code lines.
+// Safe code is 3 time more reliable than normal code, and
+// dangerous code is 3 time more dangerous than normal code.
+//
+// returns 0 ~ 1000000
+
+static int calc_score(void) 
+{
+        int total, tested, s;
+	struct c2_func *f;
+	struct c2_list_head *le;
+        
+        total = tested = 0;
+	c2_list_for_each(le, &func_head) {
+		f = c2_list_entry(le, struct c2_func, link);
+                s = f->line * f->line;
+                total += s;
+                if (f->has_test == 0)
+                        continue;
+                switch(f->level) {
+                case DANGER: s /= 3;
+                case NORMAL: s /= 3;
+                case SAFE: break;
+                default: s = 0;
+                }
+                tested += s;
+        }
+        __c2_prog_stat.prog_score = tested * 1000000 / total;
 }
 
 static void c2_dump(void)
@@ -170,24 +207,109 @@ static void hash_init(void)
         }
 }
 
-static void test_init(void)
+static void stat_init(void)
+{
+        __c2_prog_stat.nr_func = 0;
+        __c2_prog_stat.nr_test = 0;
+        __c2_prog_stat.nr_tested_func = 0;
+        __c2_prog_stat.nr_assert = 0;
+        __c2_prog_stat.pass_assert = 0;
+        __c2_prog_stat.pass_test = 0;
+        __c2_prog_stat.prog_score = 0;
+        __c2_prog_stat.test_pri = 1;
+        __c2_prog_stat.test_dump_core = 0;
+        __c2_prog_stat.test_dump_info = 0;
+        __c2_prog_stat.test_verbose = 0;
+        __c2_prog_stat.test_path = "";
+}
+
+static void test_usage(void)
+{
+        const char *help =
+"Usage: exec_prog <options>                                             \n"
+"                                                                       \n"
+" The options are:                                                      \n"
+//"  -P <test_path>          test path (no support yet)                   \n"
+"  -p <test_priority>      test priority (1~3)                          \n"
+"  -d                      dump test and function information and exit  \n"
+//"  -c                      dump core when assert fails                  \n"
+"  -v                      be verbose                                   \n"
+"                                                                       \n";
+        fprintf(stderr, help);
+}
+static void parse_arg(int argc, char *argv[]) 
+{
+        struct c2_stat *p = &__c2_prog_stat;
+        int c;
+        
+        while ((c = getopt(argc, argv, "P:p:dcvt")) != -1)
+                switch (c) {
+                case 'P': p->test_path = optarg; break;
+                case 'p': p->test_pri  = atoi(optarg); break;
+                case 'c': p->test_dump_core = 1; break;
+                case 'd': p->test_dump_info = 1; break;
+                case 'v': p->test_verbose = 1;          break;
+                case 't': break;
+                        
+                default:
+                        test_usage();
+                        exit(1);
+                }
+
+}
+
+static void test_init(int argc, char *argv[])
 {
 	extern struct c2_si_ent c2_si_begin_marker; // from firstlink.c
 	struct c2_si_ent *start_ent, *end_ent;
 
 	hash_init();
+        stat_init();
+
+        parse_arg(argc, argv);
+
 	start_ent = &c2_si_begin_marker + 1;
 	end_ent = &c2_si_end_marker;
 
 	init_c2_list_head(&func_head);
 	init_c2_list_head(&test_head);
 	c2_env_build(start_ent, end_ent);
-
-	c2_dump();
+        calc_score();
 }
-    
+
+// remove trailing zero. i.e. 2100 -> 21
+static int trim_int(int n) 
+{
+        while (n != 0 && (n / 10) * 10 == n)
+                n = n / 10;
+        return n;
+}
+
+static void print_stat(void) 
+{
+        struct c2_stat *p = &__c2_prog_stat;
+        printf("<statistics>\n");
+        printf("test priority=%d, test path=[%s].\n",
+               p->test_pri, p->test_path);
+        printf("%d functions out of %d are tested.\n",
+               p->nr_tested_func, p->nr_func);
+        printf("%d tests are passed from total %d tests.\n",
+               p->pass_test, p->nr_test);
+        printf("%d asserts are passed from total %d asserts.\n",
+               p->pass_assert, p->nr_assert);
+        printf("Total duration is %d seconds, took %d seconds per a test on average.\n", 0, 0);
+        printf("The longest test took %d seconds, %s/%s/%s (%s).\n",
+               0, "name", "file", "path", "desc");
+        printf("Program score is %d.%d.\n",
+               p->prog_score / 10000, trim_int(p->prog_score % 10000));
+}
 
 void test_run(int argc, char *argv[]) 
 {
-    test_init();
+        test_init(argc, argv);
+        if (__c2_prog_stat.test_dump_info) {
+                c2_dump();
+                exit(0);
+        }
+        print_stat();
 }

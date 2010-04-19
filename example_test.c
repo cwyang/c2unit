@@ -1,3 +1,8 @@
+/* 
+   example_test.c            - Chul-Woong Yang (cwyang@gmail.com)
+
+   example test code to demonstrate c2unit
+*/
 #include <stdio.h>
 #include "c2unit.h"
 
