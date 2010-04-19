@@ -111,7 +111,6 @@ static __inline__ void c2_list_splice(struct c2_list_head *list, struct c2_list_
 #define c2_unique_id_2(prefix, line) prefix##_##line
 
 /* main stuffs */
-typedef void (*c2_si_fn_t)(void *arg);
 enum c2_si_type {
     C2_FUNC = 1,
     C2_TEST = 2
@@ -163,9 +162,28 @@ struct c2_func_wrap
         size_t end_line;
 };
 
-#define TEST(f,desc) TESTN(f,1,desc)
-#define TESTN(f,pri,desc) TEST_FUNC(f,__test_path,pri, desc)
-#define TEST_FUNC(f,path,pri,desc) void (f##_test) (void)
+struct c2_test
+{
+        char *name;
+        char *desc;
+        char *file;
+        char *path;
+        int pri;
+	struct c2_list_head link;
+	struct c2_list_head hash_link;
+};
+#define __C2_TEST_ID          c2_unique_id(__c2_test)
+#define __C2_TEST_INIT(Name, Desc, Path, Pri)                           \
+        { .name = (Name), .file = __FILE__, .desc = (Desc), .path = (Path), .pri = (Pri) }
+#define __C2_TEST_REGISTER \
+        __C2_SYS_INIT(C2_TEST, &__C2_TEST_ID)
+
+#define TEST(f,desc) TEST_FUNC(f,1,desc)
+#define TEST_FUNC(f,pri,desc)                                               \
+        static struct c2_test __C2_TEST_ID =                            \
+                __C2_TEST_INIT(#f,desc, (C2UNIT_TEST_PATH),(pri));      \
+        __C2_TEST_REGISTER;                                             \
+        void (f##_test) (void)
 
 #define assert(x) do { \
                 if (!(x)) {                                             \
@@ -173,6 +191,8 @@ struct c2_func_wrap
                                 __FILE__, __LINE__, #x);                \
                 }                                                       \
         } while (0)
+
+typedef void (*c2_testfn_t)(void);
 
 #ifdef C2UNIT_TEST_PATH
 #undef C2UNIT_TEST_PATH

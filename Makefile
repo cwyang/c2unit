@@ -17,9 +17,9 @@ $(TARGET): c2unit.o
 c2unit.o: c2unit.c c2unit.h
 	$(CC) $(CCFLAGS) -c c2unit.c -o $@
 
-test: test.c $(TARGET)
-	$(CC) -c test.c -o test.o
-	$(CC) $(FSTLNK) test.o $(LIBNAME) -o $@
+test: example.c example_test.c $(TARGET)
+	$(CC) -c example.c -o example.o
+	$(CC) $(FSTLNK) example.o $(LIBNAME) -o $@
 
 clean:
 	rm -f $(TARGET) *.o test *~

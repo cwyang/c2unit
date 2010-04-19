@@ -33,12 +33,12 @@ After make, you get following components:
 (3) firstlink.o
 
 Then you should build your binary with following sequences:
-$(LOADER) firstlink.o $(YOUR_OBJS) $(OTHER_LIBS) lilbc2unit.a
+$(LINKER) firstlink.o $(YOUR_OBJS) $(OTHER_LIBS) lilbc2unit.a
 
 Then try run the executable with tests!
 
 * How to Insturment Original Sources and Build Tests
 
-I'll write this later. Refer included test.c until then
+I'll write this later. Refer included sample.c and sample_test.c until then
 
                              - Chul-Woong Yang (cwyang at gmail.com)

@@ -26,6 +26,12 @@ static void __c2_func_ins(struct c2_si_ent *ent)
 
 static void __c2_test_ins(struct c2_si_ent *ent)
 {
+	struct c2_test *f = (struct c2_test *) ent->ptr;
+
+	init_c2_list_head(&f->link);
+	init_c2_list_head(&f->hash_link);
+	c2_list_add_tail(&f->link, &test_head);
+//	c2_list_add_tail(&f->hash_link, test_hash[hashval(f->name,f->file)]);
 }
 static void __c2_env_build(struct c2_si_ent *begin, struct c2_si_ent *end)
 {
@@ -38,17 +44,25 @@ static void __c2_env_build(struct c2_si_ent *begin, struct c2_si_ent *end)
 	}
 }
 
-static void __c2_func_dump(void)
+static void __c2_dump(void)
 {
 	struct c2_func *f;
+	struct c2_test *t;
 	struct c2_list_head *le;
 
 	printf("<func dump>\n");
 
 	c2_list_for_each(le, &func_head) {
 		f = c2_list_entry(le, struct c2_func, link);
-		printf("name:%s, path:%s file:%s, line:%d, level %d\n",
+		printf("name:%s, path:%s, file:%s, line:%d, level %d\n",
 			f->name, f->path, f->file, f->line, f->level);
+	}
+	printf("<test dump>\n");
+
+	c2_list_for_each(le, &test_head) {
+		t = c2_list_entry(le, struct c2_test, link);
+		printf("name:%s, desc:%s, path:%s, file:%s, pri %d\n",
+                       t->name, t->desc, t->path, t->file, t->pri);
 	}
 }
 
@@ -70,7 +84,7 @@ static void test_init(void)
 	init_c2_list_head(&test_head);
 	__c2_env_build(start_ent, end_ent);
 
-	__c2_func_dump();
+	__c2_dump();
 }
     
 

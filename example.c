@@ -22,17 +22,12 @@ int baz (int bar)
 FUNC_END(baz)
 
 
-TEST(foo,"test function for foo()") 
-{
-        assert(foo(1) == 1);
-        assert(foo(2) == 3);
-        assert(foo(3) == 3);
-}
-
 main(int argc, char *argv[]) 
 {
+        extern void foo_test(void);
         printf("cw's unit test program!\n");
         foo_test();
 	test_run(argc, argv);
 }
 
+#include "example_test.c"
