@@ -1,0 +1,44 @@
+Welcome to c2unit, Chul-woong's CUnit
+
+* Introduction
+
+This is yet another C unit testing framework.
+Why bother? To meet exact my need:
+(1) I'm trying to convert a legacy software into managable one.
+    If I'm in starting fresh projects, I'd rather pick up 'check' or
+    other existing unit testing platform.
+    However, LEGACY SOFTWARE is the one I'm facing.
+(2) I need a "METRIC", which can tell me what percentage of 
+    the software are covered with tests roughly like theses:
+    "200 funcs of 300 are tested"
+    "1200 asserts of 1200 asserts are passed"
+    "Your software safety score is 87.23"
+(3) I want to a embed total testsuite into executables.
+    In other words, I want my software to be able to self-test,
+    and it should be simple.
+    If your executable is a.out then:
+      $ a.out -t all          # run all tests
+      $ a.out -t -l 2         # run all tests above level 2
+      $ a.out -t -p "session" # run all tests with path "session"
+
+Hope this helps me and you. 
+   
+* How to Run
+
+$ make
+
+After make, you get following components:
+(1) c2unit.h -- main headerfile
+(2) libc2unit.a
+(3) firstlink.o
+
+Then you should build your binary with following sequences:
+$(LOADER) firstlink.o $(YOUR_OBJS) $(OTHER_LIBS) lilbc2unit.a
+
+Then try run the executable with tests!
+
+* How to Insturment Original Sources and Build Tests
+
+I'll write this later. Refer included test.c until then
+
+                             - Chul-Woong Yang (cwyang at gmail.com)
