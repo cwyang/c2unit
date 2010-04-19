@@ -4,6 +4,7 @@
 
 CC = gcc
 
+CCFLAGS = -g
 LIBNAME = libc2unit.a
 FSTLNK = firstlink.o
 TARGET = $(LIBNAME) $(FSTLNK)
@@ -11,7 +12,7 @@ LIB_CFILES = c2unit.c firstlink.c
 
 $(TARGET): c2unit.o
 	$(CC) $(CCFLAGS) -c firstlink.c -o $(FSTLNK)
-	ar q $(LIBNAME) c2unit.o
+	ar r $(LIBNAME) c2unit.o
 	ranlib $(LIBNAME)
 
 c2unit.o: c2unit.c c2unit.h

@@ -3,7 +3,7 @@
 
 TEST(foo,"test function for foo()") 
 {
-        assert(foo(1) == 1);
-        assert(foo(2) == 3);
-        assert(foo(3) == 3);
+        c2_assert(foo(1) == 1);
+        c2_assert(foo(2) == 3);
+        c2_assert(foo(3) == 3);
 }

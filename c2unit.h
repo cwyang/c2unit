@@ -8,6 +8,9 @@
 
 #ifndef _C2UNIT_H_
 #define _C2UNIT_H_
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 
 /* list stuffs by */
 
@@ -111,13 +114,13 @@ static __inline__ void c2_list_splice(struct c2_list_head *list, struct c2_list_
 #define c2_unique_id_2(prefix, line) prefix##_##line
 
 /* main stuffs */
-enum c2_si_type {
+enum c2_node_type {
     C2_FUNC = 1,
     C2_TEST = 2
 };
 struct c2_si_ent 
 {
-        enum c2_si_type          type;
+        enum c2_node_type          type;
         void *              ptr;
 };
 #define __C2_SI_INIT(Init, InitArg) { (Init), (InitArg) }
@@ -153,6 +156,7 @@ struct c2_func
         char *path;
         enum c2_func_level level;
         size_t line;
+        int has_test;
 	struct c2_list_head link;
 	struct c2_list_head hash_link;
 };
@@ -169,6 +173,7 @@ struct c2_test
         char *file;
         char *path;
         int pri;
+        int has_func;
 	struct c2_list_head link;
 	struct c2_list_head hash_link;
 };
@@ -185,11 +190,16 @@ struct c2_test
         __C2_TEST_REGISTER;                                             \
         void (f##_test) (void)
 
-#define assert(x) do { \
+#define c2_assert(x) do {                                               \
                 if (!(x)) {                                             \
                         fprintf(stderr, "Assertion failure @ %s:%d\n\"%s\" does not hold\n", \
                                 __FILE__, __LINE__, #x);                \
                 }                                                       \
+        } while (0)
+#define c2_panic(x) do {                                                \
+                fprintf(stderr, "*** PANIC *** %s:%d <%s>\n",           \
+                        __FILE__, __LINE__, x);                         \
+                exit(1);                                                \
         } while (0)
 
 typedef void (*c2_testfn_t)(void);
