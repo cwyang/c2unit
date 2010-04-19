@@ -12,3 +12,4 @@ TEST(foo,"test function for foo()")
         c2_assert(foo(2) == 3);
         c2_assert(foo(3) == 3);
 }
+TEST_END(foo)

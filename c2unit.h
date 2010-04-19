@@ -166,9 +166,12 @@ struct c2_func_wrap
         size_t end_line;
 };
 
+typedef void (*c2_testfn_t)(void);
+
 struct c2_test
 {
         char *name;
+        c2_testfn_t testfn;
         char *desc;
         char *file;
         char *path;
@@ -176,6 +179,11 @@ struct c2_test
         int has_func;
 	struct c2_list_head link;
 	struct c2_list_head hash_link;
+};
+struct c2_test_wrap
+{
+        struct c2_test *begin;
+        c2_testfn_t testfn;
 };
 
 struct c2_stat
@@ -196,23 +204,27 @@ struct c2_stat
 };
         
 #define __C2_TEST_ID          c2_unique_id(__c2_test)
+#define __C2_TEST_BEGIN_ID(f) __c2_test_##f
 #define __C2_TEST_INIT(Name, Desc, Path, Pri)                           \
         { .name = (Name), .file = __FILE__, .desc = (Desc), .path = (Path), .pri = (Pri) }
 #define __C2_TEST_REGISTER \
         __C2_SYS_INIT(C2_TEST, &__C2_TEST_ID)
 
 #define TEST(f,desc) TEST_FUNC(f,1,desc)
-#define TEST_FUNC(f,pri,desc)                                               \
-        static struct c2_test __C2_TEST_ID =                            \
+#define TEST_FUNC(f,pri,desc)                                           \
+        static struct c2_test __C2_TEST_BEGIN_ID(f) =                   \
                 __C2_TEST_INIT(#f,desc, (C2UNIT_TEST_PATH),(pri));      \
-        __C2_TEST_REGISTER;                                             \
-        void (f##_test) (void)
+                                                    void (f##_test) (void)
+#define TEST_END(f)                                                  \
+        static struct c2_test_wrap __C2_TEST_ID =                      \
+        { .begin = &__C2_TEST_BEGIN_ID(f), .testfn = f##_test }; __C2_TEST_REGISTER;
 
 #define c2_assert(x) do {                                               \
         __c2_prog_stat.nr_assert++;                                     \
         if (!(x)) {                                                     \
                 fprintf(stderr, "Assertion failure @ %s:%d\n\"%s\" does not hold\n", \
                         __FILE__, __LINE__, #x);                        \
+                exit(1);                                                \
         }                                                               \
         __c2_prog_stat.pass_assert++;                                 \
         } while (0)
@@ -222,8 +234,8 @@ struct c2_stat
                 exit(1);                                                \
         } while (0)
 
-typedef void (*c2_testfn_t)(void);
 extern struct c2_stat __c2_prog_stat;
+
 #ifdef C2UNIT_TEST_PATH
 #undef C2UNIT_TEST_PATH
 #endif

@@ -58,8 +58,10 @@ static void trim_filename(char *filename)
 
 static void c2_test_ins(struct c2_si_ent *ent)
 {
-	struct c2_test *f = (struct c2_test *) ent->ptr;
-
+        struct c2_test_wrap *x = (struct c2_test_wrap *) ent->ptr;
+	struct c2_test *f = x->begin;
+        
+        f->testfn = x->testfn;
         f->file = strdup(f->file); // intentional leak
         trim_filename(f->file);
         f->has_func = 0;
@@ -291,7 +293,7 @@ static void print_stat(void)
         printf("<statistics>\n");
         printf("test priority=%d, test path=[%s].\n",
                p->test_pri, p->test_path);
-        printf("%d functions out of %d are tested.\n",
+        printf("%d functions out of %d are test-covered.\n",
                p->nr_tested_func, p->nr_func);
         printf("%d tests are passed from total %d tests.\n",
                p->pass_test, p->nr_test);
@@ -306,10 +308,25 @@ static void print_stat(void)
 
 void test_run(int argc, char *argv[]) 
 {
+	struct c2_test *t;
+	struct c2_list_head *le;
+        struct c2_stat *p = &__c2_prog_stat;
+
         test_init(argc, argv);
         if (__c2_prog_stat.test_dump_info) {
                 c2_dump();
                 exit(0);
         }
+
+	c2_list_for_each(le, &test_head) {
+		t = c2_list_entry(le, struct c2_test, link);
+                if (p->test_verbose)
+                        fprintf(stderr, "Testing %s@%s [%s:%s]...",
+                                t->name, t->file, t->path, t->desc);
+                t->testfn();
+                if (p->test_verbose)
+                        fprintf(stderr, "passed\n");
+                p->pass_test++;
+	}
         print_stat();
 }
