@@ -5,7 +5,9 @@
 */
 
 #include <stdint.h>
+#include <sys/types.h>
 #include <unistd.h>
+#include <signal.h>
 #include "c2unit.h"
 
 #define DFL_HASH_SIZE 2011 // prime number
@@ -234,7 +236,7 @@ static void test_usage(void)
 //"  -P <test_path>          test path (no support yet)                   \n"
 "  -p <test_priority>      test priority (1~3)                          \n"
 "  -d                      dump test and function information and exit  \n"
-//"  -c                      dump core when assert fails                  \n"
+"  -c                      dump core when assert fails                  \n"
 "  -v                      be verbose                                   \n"
 "                                                                       \n";
         fprintf(stderr, help);
@@ -311,6 +313,8 @@ void test_run(int argc, char *argv[])
 	struct c2_test *t;
 	struct c2_list_head *le;
         struct c2_stat *p = &__c2_prog_stat;
+        int no = 1;
+        
 
         test_init(argc, argv);
         if (__c2_prog_stat.test_dump_info) {
@@ -321,12 +325,22 @@ void test_run(int argc, char *argv[])
 	c2_list_for_each(le, &test_head) {
 		t = c2_list_entry(le, struct c2_test, link);
                 if (p->test_verbose)
-                        fprintf(stderr, "Testing %s@%s [%s:%s]...",
-                                t->name, t->file, t->path, t->desc);
+                        fprintf(stderr, "[%03d] %s() in %s [%s:%s]...",
+                                no, t->name, t->file, t->path, t->desc);
                 t->testfn();
                 if (p->test_verbose)
-                        fprintf(stderr, "passed\n");
+                        fprintf(stderr, "OK\n");
                 p->pass_test++;
+                no++;
 	}
         print_stat();
+}
+
+void __c2_die(int rc) 
+{
+        struct c2_stat *p = &__c2_prog_stat;
+
+        if (p->test_dump_core == 0)
+                exit(rc);
+        kill(getpid(), SIGABRT);
 }

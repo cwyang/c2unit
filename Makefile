@@ -19,7 +19,7 @@ c2unit.o: c2unit.c c2unit.h
 	$(CC) $(CCFLAGS) -c c2unit.c -o $@
 
 test: example.c example_test.c $(TARGET)
-	$(CC) -c example.c -o example.o
+	$(CC) $(CCFLAGS) -c example.c -o example.o
 	$(CC) $(FSTLNK) example.o $(LIBNAME) -o $@
 
 clean:

@@ -222,9 +222,9 @@ struct c2_stat
 #define c2_assert(x) do {                                               \
         __c2_prog_stat.nr_assert++;                                     \
         if (!(x)) {                                                     \
-                fprintf(stderr, "Assertion failure @ %s:%d\n\"%s\" does not hold\n", \
+                fprintf(stderr, "assertion failed at %s:%d\n\"%s\" does not hold\n", \
                         __FILE__, __LINE__, #x);                        \
-                exit(1);                                                \
+                __c2_die(1);                                            \
         }                                                               \
         __c2_prog_stat.pass_assert++;                                 \
         } while (0)
