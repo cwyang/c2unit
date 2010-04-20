@@ -149,7 +149,7 @@ Then try run the executable with tests!
 * CPS: C2unit Program Score
 
 C2unit produces its running stat when test are all OK.
-There is a metric named CP2, C2unit Program Score.
+There is a metric named CPS, C2unit Program Score.
 C2unit does some math based following heuristics and
 reports score between 0 and 100, and higher score is the better.
 My simple heuristics are:
