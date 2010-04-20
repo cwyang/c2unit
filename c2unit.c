@@ -4,15 +4,19 @@
    Yet another C unit testing framework, ChulWoong's CUnit
 */
 
+#ifdef __MCT
+#include <mct.h>
+#else
 #include <stdint.h>
 #include <sys/types.h>
 #include <unistd.h>
 #include <signal.h>
+#endif
 #include "c2unit.h"
 
 #define DFL_HASH_SIZE 2011 // prime number
 
-static struct c2_si_ent c2_si_end_marker __section(".c2") __aligned(c2_alignof(struct c2_si_ent));
+static struct c2_si_ent c2_end_marker __section(".c2") __aligned(c2_alignof(struct c2_si_ent));
 static struct c2_list_head func_head, test_head;
 static struct c2_list_head *func_hash, *test_hash;
 static unsigned hash_size;
@@ -109,7 +113,7 @@ static int find_func(char *name, char *file, char *path)
         return val;
 }
 
-static void c2_match_test_func() 
+static void c2_match_test_func(void) 
 {
 	struct c2_func *f;
 	struct c2_test *t;
@@ -142,12 +146,12 @@ static void c2_env_build(struct c2_si_ent *begin, struct c2_si_ent *end)
 
 // cwyang's heuristics
 // Code safety is proportional to the square of code lines.
-// Safe code is 3 time more reliable than normal code, and
-// dangerous code is 3 time more dangerous than normal code.
+// Safe code is 2 time more reliable than normal code, and
+// dangerous code is 5 time more dangerous than normal code.
 //
 // returns 0 ~ 1000000
 
-static int calc_score(void) 
+static void calc_score(void) 
 {
         int total, tested, s;
 	struct c2_func *f;
@@ -161,14 +165,17 @@ static int calc_score(void)
                 if (f->has_test == 0)
                         continue;
                 switch(f->level) {
-                case DANGER: s /= 3;
-                case NORMAL: s /= 3;
+                case DANGER: s /= 5;
+                case NORMAL: s /= 2;
                 case SAFE: break;
                 default: s = 0;
                 }
                 tested += s;
         }
-        __c2_prog_stat.prog_score = tested * 1000000 / total;
+	if (total != 0)
+            __c2_prog_stat.prog_score = tested * 1000000 / total;
+	else
+            __c2_prog_stat.prog_score = 0;
 }
 
 static void c2_dump(void)
@@ -177,19 +184,19 @@ static void c2_dump(void)
 	struct c2_test *t;
 	struct c2_list_head *le;
 
-	printf("<func dump>\n");
+	printf("<FUNC DUMP>\n");
 
 	c2_list_for_each(le, &func_head) {
 		f = c2_list_entry(le, struct c2_func, link);
-		printf("name:%s, path:%s, file:%s, line:%d, level:%d has_test:%d\n",
+		printf("name:%-20s (%s:%-10s)  line:%4lu  level:%d  has_test:%d\n",
                        f->name, f->path, f->file, f->line, f->level, f->has_test);
 	}
-	printf("<test dump>\n");
+	printf("<TEST DUMP>\n");
 
 	c2_list_for_each(le, &test_head) {
 		t = c2_list_entry(le, struct c2_test, link);
-		printf("name:%s, desc:%s, path:%s, file:%s, pri:%d has_func:%d\n",
-                       t->name, t->desc, t->path, t->file, t->pri, t->has_func);
+		printf("name:%-20s (%s:%-10s)  pri:%d  has_func:%d  desc:%s\n",
+                       t->name, t->path, t->file, t->pri, t->has_func, t->desc);
 	}
 }
 
@@ -257,14 +264,14 @@ static void parse_arg(int argc, char *argv[])
                         
                 default:
                         test_usage();
-                        exit(1);
+                        __c2_exit(0);
                 }
 
 }
 
 static void test_init(int argc, char *argv[])
 {
-	extern struct c2_si_ent c2_si_begin_marker; // from firstlink.c
+	extern struct c2_si_ent c2_beg_marker; // from firstlink.c
 	struct c2_si_ent *start_ent, *end_ent;
 
 	hash_init();
@@ -272,8 +279,8 @@ static void test_init(int argc, char *argv[])
 
         parse_arg(argc, argv);
 
-	start_ent = &c2_si_begin_marker + 1;
-	end_ent = &c2_si_end_marker;
+	start_ent = &c2_beg_marker + 1;
+	end_ent = &c2_end_marker;
 
 	init_c2_list_head(&func_head);
 	init_c2_list_head(&test_head);
@@ -292,8 +299,8 @@ static int trim_int(int n)
 static void print_stat(void) 
 {
         struct c2_stat *p = &__c2_prog_stat;
-        printf("<statistics>\n");
-        printf("test priority=%d, test path=[%s].\n",
+        printf("\n<STATISTICS>\n");
+        printf("Test priority is %d, test path is [%s].\n",
                p->test_pri, p->test_path);
         printf("%d functions out of %d are test-covered.\n",
                p->nr_tested_func, p->nr_func);
@@ -304,7 +311,7 @@ static void print_stat(void)
         printf("Total duration is %d seconds, took %d seconds per a test on average.\n", 0, 0);
         printf("The longest test took %d seconds, %s/%s/%s (%s).\n",
                0, "name", "file", "path", "desc");
-        printf("Program score is %d.%d.\n",
+        printf("Program score is %d.%d.\n\n",
                p->prog_score / 10000, trim_int(p->prog_score % 10000));
 }
 
@@ -319,7 +326,7 @@ void test_run(int argc, char *argv[])
         test_init(argc, argv);
         if (__c2_prog_stat.test_dump_info) {
                 c2_dump();
-                exit(0);
+                __c2_exit(0);
         }
 
 	c2_list_for_each(le, &test_head) {
@@ -336,11 +343,20 @@ void test_run(int argc, char *argv[])
         print_stat();
 }
 
-void __c2_die(int rc) 
+void __c2_exit(int rc) 
 {
         struct c2_stat *p = &__c2_prog_stat;
 
-        if (p->test_dump_core == 0)
-                exit(rc);
+        if (p->test_dump_core == 0 || rc == 0) {
+#ifdef __MCT
+		die(0);
+#else
+		exit(rc);
+#endif
+        }
+#ifdef __MCT 
+		die(1);
+#else
         kill(getpid(), SIGABRT);
+#endif
 }

@@ -8,9 +8,13 @@
 
 #ifndef _C2UNIT_H_
 #define _C2UNIT_H_
+#ifdef __MCT
+#include <mct.h>
+#else
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#endif
 
 /* list stuffs by */
 
@@ -224,17 +228,22 @@ struct c2_stat
         if (!(x)) {                                                     \
                 fprintf(stderr, "assertion failed at %s:%d\n\"%s\" does not hold\n", \
                         __FILE__, __LINE__, #x);                        \
-                __c2_die(1);                                            \
+                __c2_exit(1);                                            \
         }                                                               \
         __c2_prog_stat.pass_assert++;                                 \
         } while (0)
+#ifdef __MCT
+#define	c2_panic(x) panic(x)
+#else
 #define c2_panic(x) do {                                                \
                 fprintf(stderr, "*** PANIC *** %s:%d <%s>\n",           \
                         __FILE__, __LINE__, x);                         \
-                exit(1);                                                \
+                __c2_exit(1);                                                \
         } while (0)
+#endif
 
 extern struct c2_stat __c2_prog_stat;
+extern void __c2_exit(int);
 
 #ifdef C2UNIT_TEST_PATH
 #undef C2UNIT_TEST_PATH

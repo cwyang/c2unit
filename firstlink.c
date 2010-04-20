@@ -7,4 +7,4 @@
 #include <stdio.h>
 #include "c2unit.h"
 
-struct c2_si_ent c2_si_begin_marker __section(".c2") __aligned(c2_alignof(struct c2_si_ent));
+struct c2_si_ent c2_beg_marker __section(".c2") __aligned(c2_alignof(struct c2_si_ent));
