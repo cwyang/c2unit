@@ -17,9 +17,9 @@ Why bother? To meet exact my need:
     In other words, I want my software to be able to self-test,
     and it should be simple.
     If your executable is a.out then:
-      $ a.out -t all          # run all tests
-      $ a.out -t -l 2         # run all tests above level 2
-      $ a.out -t -p "session" # run all tests with path "session"
+      $ a.out -t              # run all tests
+      $ a.out -t -p 2         # run tests T, where pri(T) <= 2
+      $ a.out -t -P "session" # run all tests with path prefix "session"
 
 Hope this helps me and you. 
    
@@ -37,9 +37,125 @@ $(LINKER) firstlink.o $(YOUR_OBJS) $(OTHER_LIBS) lilbc2unit.a
 
 Then try run the executable with tests!
 
-* How to Insturment Original Sources and Build Tests
+* Quick-Start
 
-I'll write this later. 
-Refer included example.c and example_test.c until then.
+ (1) Situation
 
+ Say your target function foo() resides in foo.c like:
+
+ #include <foo.h>
+ 
+ int foo(int a, int b) {
+         return a + b;    
+ }
+
+ Then,
+
+
+ (2) Instrument Original Source
+
+ #include <foo.h>
+
+ #define C2UNIT_TEST_PATH   // optional.
+ #include "c2unit.h"        // should be in include-path
+
+ FUNC_BEGIN(foo, NORMAL)    // FUNC_BEGIN(func_name, func_level)
+ int foo(int a, int b) {
+         return a + b;    
+ }
+ FUNC_END(foo)
+
+ ...
+
+ #include "foo_test.c"      // recommend to put at the end of foo.c
+
+ Instrument original source file like the above.
+
+ C2UNIT_TEST_PATH provides a way to group tests.
+ When there is over thousands of tests and you may want to
+ test only your working tests for a while. Then define
+ C2UNIT_TEST_PATH to unique identifier and use the identifier
+ in running test cases to designate test group.
+
+ FUNC_BEGIN(..) and FUNC_END(..) should be declared.
+ func_level, the second argument of FUNC_BEGIN, is one of
+ SAFE, NORMAL, DANGER. My intention is that SAFE means side-effect 
+ free code, NORMAL means side-effect code or complex code, and
+ DANGER means uncomprehensible, legacy code.
+ By declaring function level explicitly, a programmer could know
+ where he stands at, I suggest. func_level is also used in doing
+ c2unit program score, CPS. 
+
+ It is not mandatory to keep test code as a file included to 
+ the original source file. Static file could be tested, however,
+ in doing so and I recommend the way.
+
+
+ (3) Code tests
+
+ foo_test.c:
+
+ #include "c2unit.h"                       // if needed
+
+ TEST(foo, 1, "this is a test for foo()")  // name, no, desc
+ {
+         c2_assert(foo(1,2) == 3);
+         c2_assert(foo(2,5) == 7);
+ }
+ TEST_END(foo, 1)                          // name, no
+
+ TEST(foo, 2, "another test for foo()")
+ {
+         c2_assert(foo(0,0) == 0);
+ }
+ TEST_END(foo, 2)
+
+ // name, no, desc, pri
+ TEST_FUNC(foo, 3, "priority 2 test for foo(), it takes a long time")
+ {
+         sleep(1000);
+         c2_assert(foo(-1, 1) == 0);
+ }
+ TEST_END(foo, 3)
+
+ A test function is a pair between TEST (or TEST_FUNC) and TEST_END.
+ TEST, TEST_FUNC, and TEST_END macros need arguments: 
+  - name: name of function to test
+  - no  : serial number of the test. 
+  - desc: description of the test. It is showed in test-run results.
+  - pri : test priority. This is another mechansim for designating
+          a group of tests to run.
+ Note that (name, no) pair should be unique in a source file.
+
+
+ (4) Do code to call test-runner from main()
+
+ test_run(argc, argv) function is provided to as entry point.
+ So, if you want to run test codes, call it.
+ As test_run() parses additional command line option, it would be
+ convinient to pass argc and argv from main() to test_run().
+ (refer example.c)
+
+ Following options are supported:
+   -P <test_path_prefix>   test path prefix
+   -p <test_priority>      test priority (1~3)
+   -d                      dump test and function information and exit
+   -c                      dump core when assert fails
+   -v                      be verbose
+
+ (5) Test, code, and repeat!
+
+
+* CPS: C2unit Program Score
+
+C2unit produces its running stat when test are all OK.
+There is a metric named CP2, C2unit Program Score.
+C2unit does some math based following heuristics and
+reports score between 0 and 100, and higher score is the better.
+My simple heuristics are:
+ - Tests, however awful they are, are better to have
+ - When a programmer decides the code is safe, it's good.
+   But he decides the code as a DANGER, then it would be CATASTROPHE.
+
+                               20 April 2010
                              - Chul-Woong Yang (cwyang at gmail.com)

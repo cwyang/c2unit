@@ -5,6 +5,8 @@
 */
 #include <stdio.h>
 #include <unistd.h>
+
+#define C2UNIT_TEST_PATH "sample"
 #include "c2unit.h"
 
 FUNC_BEGIN(foo, NORMAL)

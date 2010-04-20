@@ -180,6 +180,7 @@ struct c2_test
         char *file;
         char *path;
         int pri;
+        int no;
         int has_func;
 	struct c2_list_head link;
 	struct c2_list_head hash_link;
@@ -208,20 +209,20 @@ struct c2_stat
 };
         
 #define __C2_TEST_ID          c2_unique_id(__c2_test)
-#define __C2_TEST_BEGIN_ID(f) __c2_test_##f
-#define __C2_TEST_INIT(Name, Desc, Path, Pri)                           \
-        { .name = (Name), .file = __FILE__, .desc = (Desc), .path = (Path), .pri = (Pri) }
+#define __C2_TEST_BEGIN_ID(f,n) __c2_test_##f##n
+#define __C2_TEST_INIT(Name, Desc, Path, Pri, No)                       \
+        { .name = (Name), .file = __FILE__, .desc = (Desc), .path = (Path), .pri = (Pri), .no=(No) }
 #define __C2_TEST_REGISTER \
         __C2_SYS_INIT(C2_TEST, &__C2_TEST_ID)
 
-#define TEST(f,desc) TEST_FUNC(f,1,desc)
-#define TEST_FUNC(f,pri,desc)                                           \
-        static struct c2_test __C2_TEST_BEGIN_ID(f) =                   \
-                __C2_TEST_INIT(#f,desc, (C2UNIT_TEST_PATH),(pri));      \
-                                                    void (f##_test) (void)
-#define TEST_END(f)                                                  \
-        static struct c2_test_wrap __C2_TEST_ID =                      \
-        { .begin = &__C2_TEST_BEGIN_ID(f), .testfn = f##_test }; __C2_TEST_REGISTER;
+#define TEST(f,n,desc) TEST_FUNC(f,n,desc,1)
+#define TEST_FUNC(f,n,desc,pri)                                         \
+        static struct c2_test __C2_TEST_BEGIN_ID(f,n) =                 \
+                __C2_TEST_INIT(#f,desc, (C2UNIT_TEST_PATH),(pri),(n));  \
+                                                      void (f##n##_test) (void)
+#define TEST_END(f,n)                                                  \
+        static struct c2_test_wrap __C2_TEST_ID =                       \
+        { .begin = &__C2_TEST_BEGIN_ID(f,n), .testfn = f##n##_test }; __C2_TEST_REGISTER;
 
 #define c2_assert(x) do {                                               \
         __c2_prog_stat.nr_assert++;                                     \
@@ -245,8 +246,7 @@ struct c2_stat
 extern struct c2_stat __c2_prog_stat;
 extern void __c2_exit(int);
 
-#ifdef C2UNIT_TEST_PATH
-#undef C2UNIT_TEST_PATH
-#endif
+#ifndef C2UNIT_TEST_PATH
 #define C2UNIT_TEST_PATH "" // no use yet
+#endif
 #endif

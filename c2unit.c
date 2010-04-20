@@ -188,15 +188,15 @@ static void c2_dump(void)
 
 	c2_list_for_each(le, &func_head) {
 		f = c2_list_entry(le, struct c2_func, link);
-		printf("name:%-20s (%s:%-10s)  line:%4lu  level:%d  has_test:%d\n",
+		printf("%-20s (%s:%-10s)  line:%4lu  level:%d  has_test:%d\n",
                        f->name, f->path, f->file, f->line, f->level, f->has_test);
 	}
 	printf("<TEST DUMP>\n");
 
 	c2_list_for_each(le, &test_head) {
 		t = c2_list_entry(le, struct c2_test, link);
-		printf("name:%-20s (%s:%-10s)  pri:%d  has_func:%d  desc:%s\n",
-                       t->name, t->path, t->file, t->pri, t->has_func, t->desc);
+		printf("[%02d] %-20s (%s:%-10s)  pri:%d  has_func:%d  desc:%s\n",
+                       t->no, t->name, t->path, t->file, t->pri, t->has_func, t->desc);
 	}
 }
 
@@ -240,7 +240,7 @@ static void test_usage(void)
 "Usage: exec_prog <options>                                             \n"
 "                                                                       \n"
 " The options are:                                                      \n"
-//"  -P <test_path>          test path (no support yet)                   \n"
+"  -P <test_path_prefix>   test path prefix                             \n"
 "  -p <test_priority>      test priority (1~3)                          \n"
 "  -d                      dump test and function information and exit  \n"
 "  -c                      dump core when assert fails                  \n"
@@ -311,7 +311,7 @@ static void print_stat(void)
         printf("Total duration is %d seconds, took %d seconds per a test on average.\n", 0, 0);
         printf("The longest test took %d seconds, %s/%s/%s (%s).\n",
                0, "name", "file", "path", "desc");
-        printf("Program score is %d.%d.\n\n",
+        printf("C2unit Program Score is %d.%d.\n\n",
                p->prog_score / 10000, trim_int(p->prog_score % 10000));
 }
 
@@ -320,20 +320,28 @@ void test_run(int argc, char *argv[])
 	struct c2_test *t;
 	struct c2_list_head *le;
         struct c2_stat *p = &__c2_prog_stat;
-        int no = 1;
-        
+        int no = 1, path_check = 0;
 
         test_init(argc, argv);
-        if (__c2_prog_stat.test_dump_info) {
+        if (p->test_dump_info) {
                 c2_dump();
                 __c2_exit(0);
         }
 
+        if (p->test_path && *p->test_path != '\0')
+                path_check = strlen(p->test_path);
+        
 	c2_list_for_each(le, &test_head) {
 		t = c2_list_entry(le, struct c2_test, link);
+                if (p->test_pri < t->pri)
+                        continue;
+                if (path_check &&
+                    strncmp(p->test_path, t->path, path_check) != 0)
+                        continue;
+                        
                 if (p->test_verbose)
-                        fprintf(stderr, "[%03d] %s() in %s [%s:%s]...",
-                                no, t->name, t->file, t->path, t->desc);
+                        fprintf(stderr, "[%03d] %s[%d] in %s [%s:%s]...",
+                                no, t->name, t->no, t->file, t->path, t->desc);
                 t->testfn();
                 if (p->test_verbose)
                         fprintf(stderr, "OK\n");
