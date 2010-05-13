@@ -224,15 +224,25 @@ struct c2_stat
         static struct c2_test_wrap __C2_TEST_ID =                       \
         { .begin = &__C2_TEST_BEGIN_ID(f,n), .testfn = f##n##_test }; __C2_TEST_REGISTER;
 
-#define c2_assert(x) do {                                               \
+#define __C2_ASSERT_BEFORE(x) do {                                      \
         __c2_prog_stat.nr_assert++;                                     \
-        if (!(x)) {                                                     \
-                fprintf(stderr, "assertion failed at %s:%d\n\"%s\" does not hold\n", \
-                        __FILE__, __LINE__, #x);                        \
-                __c2_exit(1);                                            \
+        if (!(x)) {
+#define __C2_ASSERT_AFTER __c2_exit(1);                                 \
         }                                                               \
-        __c2_prog_stat.pass_assert++;                                 \
-        } while (0)
+                                                                                __c2_prog_stat.pass_assert++; \
+                                                                                } while (0)
+#define c2_assert(x) __C2_ASSERT_BEFORE(x)                              \
+        fprintf(stderr, "assertion failed at %s:%d\n\"%s\" does not hold\n", \
+                __FILE__, __LINE__, #x);                                \
+        __C2_ASSERT_AFTER
+#define c2_assert_d(x,d1) __C2_ASSERT_BEFORE(x)                         \
+        fprintf(stderr, "assertion failed at %s:%d\n\"%s\" does not hold (value is %d)\n", \
+                __FILE__, __LINE__, #x, d1);                            \
+        __C2_ASSERT_AFTER
+#define c2_assert_dd(x,d1,d2) __C2_ASSERT_BEFORE(x)                     \
+        fprintf(stderr, "assertion failed at %s:%d\n\"%s\" does not hold (values are %d,%d)\n", \
+                __FILE__, __LINE__, #x, d1, d2);                        \
+        __C2_ASSERT_AFTER
 #ifdef __MCT
 #define	c2_panic(x) panic(x)
 #else
@@ -245,6 +255,7 @@ struct c2_stat
 
 extern struct c2_stat __c2_prog_stat;
 extern void __c2_exit(int);
+extern void test_run(int argc, char *argv[]);
 
 #ifndef C2UNIT_TEST_PATH
 #define C2UNIT_TEST_PATH "" // no use yet
