@@ -200,6 +200,10 @@ struct c2_stat
         int pass_assert;
         int pass_test;
         int prog_score;
+        int time_total;
+        int time_max;
+        struct c2_test *longest_test;
+        
         /* settings */
         char *test_path;
         int test_pri;

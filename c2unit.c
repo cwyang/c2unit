@@ -232,6 +232,8 @@ static void stat_init(void)
         __c2_prog_stat.test_dump_info = 0;
         __c2_prog_stat.test_verbose = 0;
         __c2_prog_stat.test_path = "";
+        __c2_prog_stat.time_max = 0;
+        __c2_prog_stat.time_total = 0;
 }
 
 static void test_usage(void)
@@ -287,7 +289,7 @@ static void test_init(int argc, char *argv[])
 	c2_env_build(start_ent, end_ent);
         calc_score();
 }
-
+#if 0
 // remove trailing zero. i.e. 2100 -> 21
 static int trim_int(int n) 
 {
@@ -295,7 +297,7 @@ static int trim_int(int n)
                 n = n / 10;
         return n;
 }
-
+#endif
 static void print_stat(void) 
 {
         struct c2_stat *p = &__c2_prog_stat;
@@ -308,11 +310,31 @@ static void print_stat(void)
                p->pass_test, p->nr_test);
         printf("%d asserts are passed from total %d asserts.\n",
                p->pass_assert, p->nr_assert);
-        printf("Total duration is %d seconds, took %d seconds per a test on average.\n", 0, 0);
-        printf("The longest test took %d seconds, %s/%s/%s (%s).\n",
-               0, "name", "file", "path", "desc");
-        printf("C2unit Program Score is %d.%d.\n\n",
-               p->prog_score / 10000, trim_int(p->prog_score % 10000));
+        printf("Total duration is %d msec, took %d msec per a test on average.\n", 
+               p->time_total, 
+               p->time_total / p->nr_test);
+        printf("The longest test took %d msec, %s/%s/%s (%s).\n",
+               p->time_max,
+               p->longest_test->name,
+               p->longest_test->file,
+               p->longest_test->path,
+               p->longest_test->desc);
+//        printf("C2unit Program Score is %d.%d.\n\n",
+//               p->prog_score / 10000, trim_int(p->prog_score % 10000));
+}
+static struct timeval tstart, tend;
+static void time_start(void) 
+{
+        gettimeofday(&tstart, NULL);
+}
+static unsigned time_end(void) 
+{
+        unsigned diff_msec;
+        
+        gettimeofday(&tend, NULL);
+	diff_msec = (tend.tv_sec - tstart.tv_sec) * 1000 
+		+ (tend.tv_usec - tstart.tv_usec) / 1000;
+        return diff_msec;
 }
 
 void test_run(int argc, char *argv[]) 
@@ -321,7 +343,8 @@ void test_run(int argc, char *argv[])
 	struct c2_list_head *le;
         struct c2_stat *p = &__c2_prog_stat;
         int no = 1, path_check = 0;
-
+        int msec;
+        
         test_init(argc, argv);
         if (p->test_dump_info) {
                 c2_dump();
@@ -339,10 +362,24 @@ void test_run(int argc, char *argv[])
                     strncmp(p->test_path, t->path, path_check) != 0)
                         continue;
                         
-                if (p->test_verbose)
-                        fprintf(stderr, "[%03d] %s[%d] in %s [%s:%s]...",
+                if (p->test_verbose) {
+                        char buf[77];
+                        
+                        snprintf(buf, 77, "[%03d] %s[%d] in %s [%s:%s].........................................",
                                 no, t->name, t->no, t->file, t->path, t->desc);
+                        buf[76] = '\0';
+                        fprintf(stderr, buf);
+                }
+
+                time_start();
                 t->testfn();
+                msec = time_end();
+                p->time_total += msec;
+                if (p->time_max <= msec) {
+                        p->time_max = msec;
+                        p->longest_test = t;
+                }
+                
                 if (p->test_verbose)
                         fprintf(stderr, "OK\n");
                 p->pass_test++;
