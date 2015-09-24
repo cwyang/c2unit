@@ -248,7 +248,7 @@ static void test_usage(void)
 "  -c                      dump core when assert fails                  \n"
 "  -v                      be verbose                                   \n"
 "                                                                       \n";
-        fprintf(stderr, help);
+        fprintf(stderr, "%s", help);
 }
 static void parse_arg(int argc, char *argv[]) 
 {
@@ -368,7 +368,7 @@ void test_run(int argc, char *argv[])
                         snprintf(buf, 77, "[%03d] %s[%d] in %s [%s:%s].........................................",
                                 no, t->name, t->no, t->file, t->path, t->desc);
                         buf[76] = '\0';
-                        fprintf(stderr, buf);
+                        fprintf(stderr, "%s", buf);
                 }
 
                 time_start();

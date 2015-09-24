@@ -247,6 +247,9 @@ struct c2_stat
         fprintf(stderr, "assertion failed at %s:%d\n\"%s\" does not hold (values are %d,%d)\n", \
                 __FILE__, __LINE__, #x, d1, d2);                        \
         __C2_ASSERT_AFTER
+#define ok(cond) c2_assert(cond)
+#define ok_d(cond,d1) c2_assert(cond, d1)
+#define ok_dd(cond,d1,d2) c2_assert(cond, d1, d2)
 #ifdef __MCT
 #define	c2_panic(x) panic(x)
 #else

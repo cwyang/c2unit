@@ -8,11 +8,9 @@ Why bother? To meet exact my need:
     If I'm in starting fresh projects, I'd rather pick up 'check' or
     other existing unit testing platform.
     However, LEGACY SOFTWARE is the one I'm facing.
-(2) I need a "METRIC", which can tell me what percentage of 
-    the software are covered with tests roughly like theses:
+(2) I need a view on how much portion of software is tested:
     "200 funcs of 300 are tested"
     "1200 asserts of 1200 asserts are passed"
-    "Your software safety score is 87.23"
 (3) I want to a embed total testsuite into executables.
     In other words, I want my software to be able to self-test,
     and it should be simple.
@@ -77,19 +75,10 @@ Then try run the executable with tests!
  C2UNIT_TEST_PATH to unique identifier and use the identifier
  in running test cases to designate test group.
 
- FUNC_BEGIN(..) and FUNC_END(..) should be declared.
- func_level, the second argument of FUNC_BEGIN, is one of
- SAFE, NORMAL, DANGER. My intention is that SAFE means side-effect 
- free code, NORMAL means side-effect code or complex code, and
- DANGER means uncomprehensible, legacy code.
- By declaring function level explicitly, a programmer could know
- where he stands at, I suggest. func_level is also used in doing
- c2unit program score, CPS. 
-
  It is not mandatory to keep test code as a file included to 
- the original source file. Static file could be tested, however,
- in doing so and I recommend the way.
-
+ the original source file. It's just my test-code grouping style.
+ I looked the content of source directory and be glad when 
+ each of source code file has accompanying _test.c file.
 
  (3) Code tests
 
@@ -99,14 +88,14 @@ Then try run the executable with tests!
 
  TEST(foo, 1, "this is a test for foo()")  // name, no, desc
  {
-         c2_assert(foo(1,2) == 3);
-         c2_assert(foo(2,5) == 7);
+         ok(foo(1,2) == 3);         /* or c2_assert(foo(1,2) == 3); */
+         ok(foo(2,5) == 7);         /* or  c2_assert(foo(2,5) == 7); */
  }
  TEST_END(foo, 1)                          // name, no
 
  TEST(foo, 2, "another test for foo()")
  {
-         c2_assert(foo(0,0) == 0);
+         ok(foo(0,0) == 0);
  }
  TEST_END(foo, 2)
 
@@ -114,7 +103,7 @@ Then try run the executable with tests!
  TEST_FUNC(foo, 3, "priority 2 test for foo(), it takes a long time")
  {
          sleep(1000);
-         c2_assert(foo(-1, 1) == 0);
+         ok(foo(-1, 1) == 0);
  }
  TEST_END(foo, 3)
 
@@ -144,18 +133,6 @@ Then try run the executable with tests!
    -v                      be verbose
 
  (5) Test, code, and repeat!
-
-
-* CPS: C2unit Program Score
-
-C2unit produces its running stat when test are all OK.
-There is a metric named CPS, C2unit Program Score.
-C2unit does some math based following heuristics and
-reports score between 0 and 100, and higher score is the better.
-My simple heuristics are:
- - Tests, however awful they are, are better to have
- - When a programmer decides the code is safe, it's good.
-   But he decides the code as a DANGER, then it would be CATASTROPHE.
 
                                20 April 2010
                              - Chul-Woong Yang (cwyang at gmail.com)

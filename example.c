@@ -12,11 +12,6 @@
 FUNC_BEGIN(foo, NORMAL)
 int foo (int bar) 
 {
-
-
-
-
-
         return bar;
 }
 FUNC_END(foo)
@@ -43,8 +38,8 @@ main(int argc, char *argv[])
                 }
 
         // otherwise do normal tasks
-        printf("Hello, world!\n");
-        printf("Welcome to cwyang's first unit test program!\n");
+        printf("C2UNIT test program\n by Chul-Woong Yang (cwyang@gmail.com)\n\n");
+        printf("run as '%s -t' or '%s -tv' to see demo\n", argv[0], argv[0]);
 }
 
 #include "example_test.c"
